@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mach-O Fat/Universal Binary Splitter — extract one architecture</title>
+<meta name="description" content="Inspect a macOS/iOS Mach-O fat (universal) binary's architecture slices and extract any one of them (x86_64, arm64, i386, armv7...) as a standalone thin Mach-O file. Entirely in your browser.">
+<link rel="stylesheet" href="https://gazetheeupon.github.io/shared-assets/theme.css?v=2">
+<link rel="canonical" href="https://gazetheeupon.github.io/macho-splitter/">
+<meta property="og:title" content="Mach-O Fat/Universal Binary Splitter">
+<meta property="og:description" content="See which CPU architectures are packed into a macOS/iOS universal binary, and pull any one of them out as a standalone file.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://gazetheeupon.github.io/macho-splitter/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Mach-O Fat/Universal Binary Splitter">
+<meta name="twitter:description" content="See which CPU architectures are packed into a macOS/iOS universal binary, and pull any one of them out as a standalone file.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Mach-O Fat/Universal Binary Splitter",
+  "url": "https://gazetheeupon.github.io/macho-splitter/",
+  "description": "Inspect a macOS/iOS Mach-O fat (universal) binary's architecture slices and extract any one of them as a standalone thin Mach-O file.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any (runs in web browser)",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<style>
+  :root{--bg:#0f1720;--card:#1a2532;--text:#e8edf2;--muted:#93a3b3;--accent:#4fa8ff;--border:#2a3745;--warn:#ffcf8a;--good:#7be0a8;--bad:#ff8080;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;}
+  header{padding:2rem 1rem 1rem;text-align:center;}
+  h1{font-size:1.5rem;margin:0 0 .4rem;}
+  p.sub{color:var(--muted);margin:0 auto;max-width:680px;}
+  main{max-width:780px;margin:0 auto;padding:1.5rem 1rem 3rem;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.2rem;}
+  .dropzone{border:2px dashed var(--border);border-radius:10px;padding:2rem 1rem;text-align:center;cursor:pointer;transition:border-color .15s;}
+  .dropzone.drag{border-color:var(--accent);}
+  .dropzone input{display:none;}
+  .dropzone .hint{color:var(--muted);font-size:.9rem;margin-top:.4rem;}
+  .fname{font-size:.9rem;color:var(--text);margin-top:.6rem;word-break:break-all;text-align:center;}
+  #status{color:var(--muted);font-size:.9rem;margin-top:.8rem;min-height:1.2em;text-align:center;}
+  #status.warn{color:var(--bad);}
+  h2{font-size:1rem;margin:0 0 .8rem;color:var(--text);}
+  h3{font-size:.9rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+  table.kv{width:100%;border-collapse:collapse;font-size:.85rem;}
+  table.kv td{padding:.35rem .5rem;border-bottom:1px solid var(--border);vertical-align:top;}
+  table.kv tr:last-child td{border-bottom:none;}
+  table.kv td:first-child{color:var(--muted);width:38%;white-space:nowrap;}
+  code{background:#0f1720;padding:.1rem .35rem;border-radius:4px;font-size:.85em;}
+  .banner{border-radius:10px;padding:.9rem 1rem;font-size:.9rem;margin-bottom:1rem;border:1px solid;}
+  .banner.good{background:rgba(123,224,168,.08);border-color:var(--good);color:var(--good);}
+  .banner.bad{background:rgba(255,128,128,.08);border-color:var(--bad);color:var(--bad);}
+  .banner.neutral{background:rgba(147,163,179,.08);border-color:var(--border);color:var(--text);}
+  .banner strong{display:block;margin-bottom:.2rem;font-size:.95rem;}
+  .arch-block{border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-bottom:.8rem;}
+  .arch-block:last-child{margin-bottom:0;}
+  .arch-block h3{margin-top:0;color:var(--text);text-transform:none;letter-spacing:normal;font-size:1rem;}
+  .arch-warn{color:var(--warn);font-size:.85rem;margin-top:.5rem;}
+  .extract-btn{background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:.5rem 1.1rem;font-size:.85rem;font-weight:600;cursor:pointer;margin-top:.7rem;}
+  .privacy{font-size:.85rem;color:var(--muted);}
+  .hidden{display:none;}
+  #errorCard{border-color:var(--bad);}
+  #errorCard p{color:var(--bad);margin:0;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Mach-O Fat/Universal Binary Splitter</h1>
+  <p class="sub">Drop a macOS/iOS fat (universal) binary to see every CPU architecture packed inside it, and pull any one out as a standalone file &mdash; parsed entirely in your browser.</p>
+</header>
+<main>
+  <div class="card">
+    <div class="dropzone" id="dropzone">
+      <div>Drop a Mach-O fat binary here, or click to choose</div>
+      <div class="hint">.dylib, .a, .app executables, or any extensionless universal binary &mdash; nothing is uploaded anywhere</div>
+      <input type="file" id="fileInput">
+    </div>
+    <div class="fname" id="fname"></div>
+    <div id="status"></div>
+  </div>
+
+  <div class="card hidden" id="errorCard"><p id="errorText"></p></div>
+
+  <div class="card hidden" id="resultsCard">
+    <h2>Architecture slices</h2>
+    <div id="summaryBanner"></div>
+    <div id="archList"></div>
+    <div id="warningsList"></div>
+  </div>
+
+  <div class="card">
+    <p class="privacy"><strong>How this works:</strong> a Mach-O fat binary is just a small directory (the <code>fat_header</code>) listing byte ranges, one per CPU architecture, inside the same file. This page reads that directory and, when you click Extract, copies the exact byte range for that architecture out as a new, standalone thin Mach-O file &mdash; the same operation <code>lipo -thin</code> performs on a Mac. Nothing you drop here is ever sent anywhere.</p>
+    <p class="privacy" style="margin-top:.8rem;"><strong>What this tool does NOT do:</strong> it doesn't disassemble, run, or code-sign anything. An extracted slice keeps whatever code signature it had inside the original fat binary; if that signature covered the whole fat file (common for ad-hoc signing), the extracted slice may need re-signing before macOS will run it standalone.</p>
+  </div>
+
+  <div class="card faq">
+    <h2>Troubleshooting</h2>
+    <details><summary>It says this file is "already single-architecture"</summary>
+      <p>Not every macOS binary is universal &mdash; plenty of tools, especially older or Intel-only ones, ship as a single architecture. If that's what you dropped, there's nothing to split; the file already only contains one architecture's code.</p>
+    </details>
+    <details><summary>Why does the same architecture sometimes show a different subtype?</summary>
+      <p>ARM binaries in particular are often built for a specific subtype (armv7, armv7s, armv8) rather than "any ARM." Two files can both say "arm" but only run correctly on compatible subtypes.</p>
+    </details>
+    <details><summary>The extracted file won't run on my Mac</summary>
+      <p>See the code-signing note above &mdash; a slice extracted from a signed fat binary usually needs to be re-signed (even just ad-hoc, with <code>codesign -s -</code>) before macOS's Gatekeeper will let it execute standalone.</p>
+    </details>
+  </div>
+
+  <div id="ad-slot"></div>
+</main>
+<script src="macho-parser.js"></script>
+<script src="app.js"></script>
+<script defer src="https://gazetheeupon.github.io/shared-assets/site.js"></script>
+</body>
+</html>
