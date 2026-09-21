@@ -64,6 +64,38 @@
   #errorCard{border-color:var(--bad);}
   #errorCard p{color:var(--bad);margin:0;}
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "It says this file is \"already single-architecture\"",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Not every macOS binary is universal \u2014 plenty of tools, especially older or Intel-only ones, ship as a single architecture. If that's what you dropped, there's nothing to split; the file already only contains one architecture's code."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does the same architecture sometimes show a different subtype?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "ARM binaries in particular are often built for a specific subtype (armv7, armv7s, armv8) rather than \"any ARM.\" Two files can both say \"arm\" but only run correctly on compatible subtypes."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "The extracted file won't run on my Mac",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "See the code-signing note above \u2014 a slice extracted from a signed fat binary usually needs to be re-signed (even just ad-hoc, with codesign -s - ) before macOS's Gatekeeper will let it execute standalone."
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <header>
